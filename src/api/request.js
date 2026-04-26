@@ -15,7 +15,7 @@ const request = axios.create({
 //body：请求体，包含对话消息数组和是否流式请求。
 export const streamChat = async (messages, onChunk, onError) => {
   try {
-    const response = await fetch('/api/chat', {
+    const response = await fetch('/chat', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
