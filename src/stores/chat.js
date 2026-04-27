@@ -29,12 +29,16 @@ export const useChatStore = defineStore('chat', {
       const stored = localStorage.getItem('chat-sessions')
       if (stored) {
         this.sessions = JSON.parse(stored)
-        // 兼容处理：确保每个会话的 name 为字符串（杜绝 null）
-        this.sessions = this.sessions.map((s) => ({
-          ...s,
-          name: s.name || ''
-        }))
-        if (this.sessions.length > 0) {
+        // 兼容处理：确保每个会话的 name 为字符串
+        this.sessions = this.sessions.map((s) => ({ ...s, name: s.name || '' }))
+
+        // 尝试恢复上次打开的会话
+        const lastId = this._getLastSessionId()
+        const lastSession = this.sessions.find((s) => s.id === lastId)
+        if (lastSession) {
+          this.currentSessionId = lastId
+        } else if (this.sessions.length > 0) {
+          // 如果上次会话不存在（例如已被删除），则选中第一个
           this.currentSessionId = this.sessions[0].id
         } else {
           this.createNewSession()
@@ -56,12 +60,14 @@ export const useChatStore = defineStore('chat', {
       this.sessions.unshift(newSession) // 最新在最前
       this.currentSessionId = newSession.id
       this._saveToLocal()
+      this._saveLastSessionId()
       return newSession.id
     },
     // 切换到指定会话
     switchSession(sessionId) {
       if (this.sessions.find((s) => s.id === sessionId)) {
         this.currentSessionId = sessionId
+        this._saveLastSessionId()
       }
     },
     // 删除会话
@@ -136,6 +142,17 @@ export const useChatStore = defineStore('chat', {
       if (!session) return []
       // 返回格式符合 OpenAI 要求
       return session.messages.map((m) => ({ role: m.role, content: m.content }))
+    },
+    // 保存当前会话 ID 到 localStorage
+    _saveLastSessionId() {
+      if (this.currentSessionId) {
+        localStorage.setItem('last-session-id', this.currentSessionId)
+      }
+    },
+
+    // 恢复上次打开的会话 ID
+    _getLastSessionId() {
+      return localStorage.getItem('last-session-id')
     }
   }
 })
